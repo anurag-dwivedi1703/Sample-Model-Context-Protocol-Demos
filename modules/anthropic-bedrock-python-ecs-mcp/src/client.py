@@ -53,48 +53,58 @@ class MCPClient:
         """Process a query using Claude and available tools"""
         messages = [{"role": "user", "content": query}]
 
-        response = await self.session.list_tools()
-        available_tools = [
-            {
-                "name": tool.name,
-                "description": tool.description,
-                "input_schema": tool.inputSchema,
-            }
-            for tool in response.tools
-        ]
+        # List available tools
+        tools_result = await self.session.list_tools()
+        print("Available tools:")
+        for tool in tools_result.tools:
+            print(f"  - {tool.name}: {tool.description}")
 
-        response = self.anthropic.messages.create(
-            model="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-            max_tokens=1000,
-            messages=messages,
-            tools=available_tools,
-        )
+        # Call our calculator tool
+        result = await self.session.call_tool("greeting", {"name": "Aditi"})
+        print(f"Current time in New York is = {result.content[0].text}")
+        final_text = [f"Current time in New York is = {result.content[0].text}"]
+        # response = await self.session.list_tools()
+        # available_tools = [
+        #     {
+        #         "name": tool.name,
+        #         "description": tool.description,
+        #         "input_schema": tool.inputSchema,
+        #     }
+        #     for tool in response.tools
+        # ]
 
-        tool_results = []
-        final_text = []
+        # response = self.anthropic.messages.create(
+        #     model="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        #     max_tokens=1000,
+        #     messages=messages,
+        #     tools=available_tools,
+        # )
 
-        for content in response.content:
-            if content.type == "text":
-                final_text.append(content.text)
-            elif content.type == "tool_use":
-                tool_name = content.name
-                tool_args = content.input
+        # tool_results = []
+        # final_text = []
 
-                result = await self.session.call_tool(tool_name, tool_args)
-                tool_results.append({"call": tool_name, "result": result})
-                final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
+        # for content in response.content:
+        #     if content.type == "text":
+        #         final_text.append(content.text)
+        #     elif content.type == "tool_use":
+        #         tool_name = content.name
+        #         tool_args = content.input
 
-                if hasattr(content, "text") and content.text:
-                    messages.append({"role": "assistant", "content": content.text})
-                messages.append({"role": "user", "content": result.content})
+        #         result = await self.session.call_tool(tool_name, tool_args)
+        #         tool_results.append({"call": tool_name, "result": result})
+        #         final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
 
-                response = self.anthropic.messages.create(
-                    model="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-                    max_tokens=1000,
-                    messages=messages,
-                )
+        #         if hasattr(content, "text") and content.text:
+        #             messages.append({"role": "assistant", "content": content.text})
+        #         messages.append({"role": "user", "content": result.content})
 
-                final_text.append(response.content[0].text)
+        #         response = self.anthropic.messages.create(
+        #             model="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        #             max_tokens=1000,
+        #             messages=messages,
+        #         )
+
+        #         final_text.append(response.content[0].text)
 
         return "\n".join(final_text)
 
