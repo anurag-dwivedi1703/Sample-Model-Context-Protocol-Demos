@@ -83,8 +83,12 @@ aws ecr create-repository --repository-name mcp-sse
 aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
 # Build images locally
-docker build -f docker/server/Dockerfile -t server-image .
-docker build -f docker/client/Dockerfile -t client-image .
+docker build -f docker/server -t server-image .
+docker build -f docker/client -t client-image .
+
+# Build images locally for linux
+docker buildx build --platform linux/arm64 -f docker/server -t server-image .
+docker buildx build --platform linux/arm64 -f docker/client -t client-image .
 
 # Tag images for ECR
 docker tag server-image ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/mcp-sse:server-image
@@ -124,7 +128,7 @@ curl http://${ALB_DNS}/health
 # Test query endpoint
 curl -X POST http://${ALB_DNS}/query \
     -H "Content-Type: application/json" \
-    -d '{"text": "Get me a greeting for Sarah"}'
+    -d '{"text": "Get me a greeting for Aditi"}'
 
 # output: {"response":"I'll help you get a greeting for Sarah using the greeting function.
 #[Calling tool greeting with args {'name': 'Sarah'}]
@@ -141,7 +145,12 @@ cdk destroy
 
 # Delete ECR images
 aws ecr delete-repository --repository-name mcp-sse --force
+
+# Delete the LogGroup
+aws logs delete-log-group --log-group-name /ecs/McpSseCdkStack
+
 ```
+
 
 ## Troubleshooting
 
